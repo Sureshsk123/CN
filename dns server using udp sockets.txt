@@ -1,0 +1,62 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#define DNS_PORT 53
+#define BUFFER_SIZE 512
+
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <hostname> <dns-server>\n", argv[0]);
+        return 1;
+    }
+
+    const char *hostname = argv[1];
+    const char *dns_server = argv[2];
+    int sockfd;
+    struct sockaddr_in server_addr;
+    char buffer[BUFFER_SIZE];
+
+    
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket");
+        return 1;
+    }
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(DNS_PORT);
+    if (inet_pton(AF_INET, dns_server, &server_addr.sin_addr) <= 0) {
+        perror("inet_pton");
+        close(sockfd);
+        return 1;
+    }
+
+    
+    memset(buffer, 0, sizeof(buffer));
+    snprintf(buffer, sizeof(buffer), "DNS request for %s", hostname);
+
+    
+    if (sendto(sockfd, buffer, strlen(buffer), 0,
+               (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("sendto");
+        close(sockfd);
+        return 1;
+    }
+    socklen_t server_len = sizeof(server_addr);
+    ssize_t received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0,
+                                    (struct sockaddr *)&server_addr, &server_len);
+    if (received_len < 0) {
+        perror("recvfrom");
+        close(sockfd);
+        return 1;
+    }
+
+    printf("Response: %.*s\n", (int)received_len, buffer);
+    close(sockfd);
+    return 0;
+}

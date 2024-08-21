@@ -1,0 +1,37 @@
+import java.util.*;
+
+class SlidingWindowProtocol {
+    private static final int WINDOW_SIZE = 4; // Size of the sliding window
+    private static final int TOTAL_FRAMES = 10; // Total number of frames to send
+
+    public static void main(String[] args) {
+        int[] frames = new int[TOTAL_FRAMES];
+        for (int i = 0; i < TOTAL_FRAMES; i++) {
+            frames[i] = i;
+        }
+
+        int sendBase = 0; // First frame in the window
+        int nextSeqNum = 0; // Next frame to send
+        int ack = 0; // Acknowledgement number
+        Random random = new Random();
+
+        while (ack < TOTAL_FRAMES) {
+            // Send frames within the window
+            while (nextSeqNum < sendBase + WINDOW_SIZE && nextSeqNum < TOTAL_FRAMES) {
+                System.out.println("Sending frame: " + frames[nextSeqNum]);
+                nextSeqNum++;
+            }
+            if (random.nextBoolean()) {
+                System.out.println("Acknowledgement received for frame: " + ack);
+                sendBase = ++ack; // Slide the window
+            } else {
+                System.out.println("Acknowledgement failed for frame: " + ack);
+                nextSeqNum = sendBase; // Resend the frame
+            }
+
+            System.out.println("Current window: [" + sendBase + ", " + (sendBase + WINDOW_SIZE - 1) + "]");
+        }
+
+        System.out.println("All frames have been sent successfully.");
+    }
+}
